@@ -66,8 +66,14 @@ try {
                 echo json_encode(['error' => 'Title cannot be empty']);
                 exit;
             }
-            $stmt = $pdo->prepare('UPDATE tasks SET title = ? WHERE id = ?');
-            $stmt->execute([$title, $id]);
+            $priority = $body['priority'] ?? null;
+            if ($priority !== null) {
+                $stmt = $pdo->prepare('UPDATE tasks SET title = ?, priority = ? WHERE id = ?');
+                $stmt->execute([$title, $priority, $id]);
+            } else {
+                $stmt = $pdo->prepare('UPDATE tasks SET title = ? WHERE id = ?');
+                $stmt->execute([$title, $id]);
+            }
         } else {
             http_response_code(400);
             echo json_encode(['error' => 'Nothing to update']);

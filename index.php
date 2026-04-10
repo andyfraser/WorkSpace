@@ -67,7 +67,10 @@ function priorityBadgeClass(string $p): string {
                             <span class="badge <?= priorityBadgeClass($task['priority'] ?? 'Medium') ?>">
                                 <?= htmlspecialchars($task['priority'] ?? 'Medium') ?>
                             </span>
-                            <button class="btn btn-sm btn-outline-danger btn-delete-task ms-2" title="Delete">&#x2715;</button>
+                            <div class="d-flex gap-1">
+                                <button class="btn btn-sm btn-outline-secondary btn-edit-task" title="Edit">&#x270E;</button>
+                                <button class="btn btn-sm btn-outline-danger btn-delete-task" title="Delete">&#x2715;</button>
+                            </div>
                         </div>
                         <h6 class="card-title"><?= htmlspecialchars($task['title']) ?></h6>
                         <div class="form-check mt-2">
@@ -181,6 +184,77 @@ function priorityBadgeClass(string $p): string {
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Add Contact</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Edit Task Modal ── -->
+<div class="modal fade" id="modal-edit-task" tabindex="-1" aria-labelledby="modal-edit-task-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="form-edit-task">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-edit-task-label">Edit Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-task-id">
+                    <div class="mb-3">
+                        <label class="form-label" for="edit-task-title">Title <span class="text-danger">*</span></label>
+                        <input id="edit-task-title" type="text" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="edit-task-priority">Priority</label>
+                        <select id="edit-task-priority" class="form-select">
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Edit Contact Modal ── -->
+<div class="modal fade" id="modal-edit-contact" tabindex="-1" aria-labelledby="modal-edit-contact-label" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="form-edit-contact">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal-edit-contact-label">Edit Contact</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-contact-id">
+                    <div id="alert-edit-contact" style="display:none"></div>
+                    <div class="mb-3">
+                        <label class="form-label" for="edit-contact-name">Name <span class="text-danger">*</span></label>
+                        <input id="edit-contact-name" type="text" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="edit-contact-email">Email</label>
+                        <input id="edit-contact-email" type="email" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="edit-contact-company">Company</label>
+                        <input id="edit-contact-company" type="text" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="edit-contact-phone">Phone</label>
+                        <input id="edit-contact-phone" type="tel" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </div>
         </form>

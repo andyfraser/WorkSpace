@@ -29,7 +29,10 @@ $(function () {
             '<div class="card-body">' +
             '<div class="d-flex justify-content-between align-items-start mb-2">' +
             priorityBadge(task.priority) +
-            '<button class="btn btn-sm btn-outline-danger btn-delete-task ms-2" title="Delete">&#x2715;</button>' +
+            '<div class="d-flex gap-1">' +
+            '<button class="btn btn-sm btn-outline-secondary btn-edit-task" title="Edit">&#x270E;</button>' +
+            '<button class="btn btn-sm btn-outline-danger btn-delete-task" title="Delete">&#x2715;</button>' +
+            '</div>' +
             '</div>' +
             '<h6 class="card-title">' + $('<span>').text(task.title).html() + '</h6>' +
             '<div class="form-check mt-2">' +
@@ -110,6 +113,40 @@ $(function () {
         });
     });
 
+    // Edit task — open modal (event delegation)
+    $('#task-cards').on('click', '.btn-edit-task', function () {
+        var $card = $(this).closest('.task-card');
+        $('#edit-task-id').val($card.data('id'));
+        $('#edit-task-title').val($card.find('.card-title').text());
+        $('#edit-task-priority').val($card.find('.badge').text().trim());
+        new bootstrap.Modal(document.getElementById('modal-edit-task')).show();
+    });
+
+    // Edit task — submit
+    $('#form-edit-task').on('submit', function (e) {
+        e.preventDefault();
+        var id       = $('#edit-task-id').val();
+        var title    = $('#edit-task-title').val().trim();
+        var priority = $('#edit-task-priority').val();
+        if (!title) return;
+
+        $.ajax({
+            url: 'api/tasks.php',
+            method: 'PATCH',
+            contentType: 'application/json',
+            data: JSON.stringify({ id: id, title: title, priority: priority }),
+            success: function (task) {
+                var $card = $('#task-cards .task-card[data-id="' + task.id + '"]');
+                $card.find('.badge').attr('class', 'badge badge-priority-' + task.priority).text(task.priority);
+                $card.find('.card-title').text(task.title);
+                var modal = bootstrap.Modal.getInstance(document.getElementById('modal-edit-task'));
+                if (modal) modal.hide();
+                showToast('Task updated.');
+            },
+            error: function () { showToast('Failed to update task.', 'danger'); }
+        });
+    });
+
     // Initial empty state
     updateEmptyState();
 
@@ -122,7 +159,10 @@ $(function () {
             '<td>' + $('<span>').text(c.email   || '').html() + '</td>' +
             '<td>' + $('<span>').text(c.company || '').html() + '</td>' +
             '<td>' + $('<span>').text(c.phone   || '').html() + '</td>' +
-            '<td><button class="btn btn-sm btn-outline-danger btn-delete-contact">Delete</button></td>' +
+            '<td>' +
+            '<button class="btn btn-sm btn-outline-secondary btn-edit-contact me-1">Edit</button>' +
+            '<button class="btn btn-sm btn-outline-danger btn-delete-contact">Delete</button>' +
+            '</td>' +
             '</tr>';
     }
 
@@ -194,6 +234,54 @@ $(function () {
                 showToast('Contact deleted.', 'danger');
             },
             error: function () { showToast('Failed to delete contact.', 'danger'); }
+        });
+    });
+
+    // Edit contact — open modal (event delegation)
+    $('#contact-tbody').on('click', '.btn-edit-contact', function () {
+        var $row = $(this).closest('tr');
+        var $cells = $row.find('td');
+        $('#edit-contact-id').val($row.data('id'));
+        $('#edit-contact-name').val($cells.eq(0).text());
+        $('#edit-contact-email').val($cells.eq(1).text());
+        $('#edit-contact-company').val($cells.eq(2).text());
+        $('#edit-contact-phone').val($cells.eq(3).text());
+        $('#alert-edit-contact').hide().empty();
+        new bootstrap.Modal(document.getElementById('modal-edit-contact')).show();
+    });
+
+    // Edit contact — submit
+    $('#form-edit-contact').on('submit', function (e) {
+        e.preventDefault();
+        $('#alert-edit-contact').hide().empty();
+
+        var payload = {
+            id:      $('#edit-contact-id').val(),
+            name:    $('#edit-contact-name').val().trim(),
+            email:   $('#edit-contact-email').val().trim(),
+            company: $('#edit-contact-company').val().trim(),
+            phone:   $('#edit-contact-phone').val().trim()
+        };
+
+        $.ajax({
+            url: 'api/contacts.php',
+            method: 'PATCH',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function () {
+                loadContacts();
+                var modal = bootstrap.Modal.getInstance(document.getElementById('modal-edit-contact'));
+                if (modal) modal.hide();
+                showToast('Contact updated.');
+            },
+            error: function (xhr) {
+                var msg = 'Failed to update contact.';
+                try { msg = JSON.parse(xhr.responseText).error || msg; } catch (_) {}
+                $('#alert-edit-contact').removeClass('d-none').show()
+                    .html('<div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">' +
+                        $('<span>').text(msg).html() +
+                        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+            }
         });
     });
 

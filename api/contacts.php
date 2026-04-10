@@ -56,6 +56,42 @@ try {
         $stmt->execute([$id]);
         echo json_encode(['success' => true]);
 
+    } elseif ($method === 'PATCH') {
+        $body = json_decode(file_get_contents('php://input'), true);
+        $id = $body['id'] ?? null;
+
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID is required']);
+            exit;
+        }
+
+        $name    = trim($body['name']    ?? '');
+        $email   = trim($body['email']   ?? '');
+        $company = trim($body['company'] ?? '');
+        $phone   = trim($body['phone']   ?? '');
+
+        if ($name === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Name is required']);
+            exit;
+        }
+
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid email address']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare(
+            'UPDATE contacts SET name = ?, email = ?, company = ?, phone = ? WHERE id = ?'
+        );
+        $stmt->execute([$name, $email ?: null, $company ?: null, $phone ?: null, $id]);
+
+        $row = $pdo->prepare('SELECT * FROM contacts WHERE id = ?');
+        $row->execute([$id]);
+        echo json_encode($row->fetch());
+
     } else {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
