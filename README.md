@@ -1,8 +1,11 @@
 # WorkSpace Dashboard
 
-A single-page productivity dashboard with a PHP/SQLite backend and a Bootstrap/jQuery frontend. Demonstrates a no-refresh UX for managing tasks and contacts.
+![PHP Version](https://img.shields.io/badge/PHP-%3E%3D%208.2-777bb4?logo=php)
+![Database](https://img.shields.io/badge/database-SQLite3-003b57?logo=sqlite)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952b3?logo=bootstrap)
+![jQuery](https://img.shields.io/badge/jQuery-3.7-0769ad?logo=jquery)
 
-**Stack:** PHP 8.2+, SQLite3, Bootstrap 5.3, jQuery 3.7
+A single-page productivity dashboard with a PHP/SQLite backend and a Bootstrap/jQuery frontend. Demonstrates a no-refresh UX for managing tasks and contacts.
 
 ## Features
 
