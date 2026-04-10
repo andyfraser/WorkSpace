@@ -31,6 +31,18 @@ body {
 .badge-priority-Medium { background-color: #ffc107; color: #000; }
 .badge-priority-High   { background-color: #dc3545; color: #fff; }
 
+/* ── Subtask cards ── */
+.subtask-card {
+    width: auto;
+    border-left: 3px solid #dee2e6;
+}
+
+.subtask-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 /* ── Empty state ── */
 .empty-state {
     color: #adb5bd;

@@ -11,9 +11,10 @@ try {
         echo json_encode($stmt->fetchAll());
 
     } elseif ($method === 'POST') {
-        $body = json_decode(file_get_contents('php://input'), true);
-        $title = trim($body['title'] ?? '');
+        $body     = json_decode(file_get_contents('php://input'), true);
+        $title    = trim($body['title'] ?? '');
         $priority = $body['priority'] ?? 'Medium';
+        $parentId = isset($body['parent_id']) ? (int)$body['parent_id'] : null;
 
         if ($title === '') {
             http_response_code(400);
@@ -21,8 +22,8 @@ try {
             exit;
         }
 
-        $stmt = $pdo->prepare('INSERT INTO tasks (title, priority) VALUES (?, ?)');
-        $stmt->execute([$title, $priority]);
+        $stmt = $pdo->prepare('INSERT INTO tasks (title, priority, parent_id) VALUES (?, ?, ?)');
+        $stmt->execute([$title, $priority, $parentId]);
         $id = $pdo->lastInsertId();
 
         $row = $pdo->prepare('SELECT * FROM tasks WHERE id = ?');
@@ -42,13 +43,17 @@ try {
             exit;
         }
 
+        // Cascade: delete subtasks first
+        $stmt = $pdo->prepare('DELETE FROM tasks WHERE parent_id = ?');
+        $stmt->execute([$id]);
+
         $stmt = $pdo->prepare('DELETE FROM tasks WHERE id = ?');
         $stmt->execute([$id]);
         echo json_encode(['success' => true]);
 
     } elseif ($method === 'PATCH') {
         $body = json_decode(file_get_contents('php://input'), true);
-        $id = $body['id'] ?? null;
+        $id   = $body['id'] ?? null;
 
         if (!$id) {
             http_response_code(400);
@@ -56,29 +61,49 @@ try {
             exit;
         }
 
-        if (isset($body['status'])) {
-            $stmt = $pdo->prepare('UPDATE tasks SET status = ? WHERE id = ?');
-            $stmt->execute([(int) $body['status'], $id]);
-        } elseif (isset($body['title'])) {
+        $sets   = [];
+        $params = [];
+
+        if (array_key_exists('status', $body)) {
+            $sets[]   = 'status = ?';
+            $params[] = (int)$body['status'];
+        }
+        if (array_key_exists('title', $body)) {
             $title = trim($body['title']);
             if ($title === '') {
                 http_response_code(400);
                 echo json_encode(['error' => 'Title cannot be empty']);
                 exit;
             }
-            $priority = $body['priority'] ?? null;
-            if ($priority !== null) {
-                $stmt = $pdo->prepare('UPDATE tasks SET title = ?, priority = ? WHERE id = ?');
-                $stmt->execute([$title, $priority, $id]);
-            } else {
-                $stmt = $pdo->prepare('UPDATE tasks SET title = ? WHERE id = ?');
-                $stmt->execute([$title, $id]);
+            $sets[]   = 'title = ?';
+            $params[] = $title;
+        }
+        if (array_key_exists('priority', $body)) {
+            $sets[]   = 'priority = ?';
+            $params[] = $body['priority'];
+        }
+        if (array_key_exists('percent', $body)) {
+            // Reject if this task has subtasks (percent is auto-calculated for parents)
+            $chk = $pdo->prepare('SELECT COUNT(*) FROM tasks WHERE parent_id = ?');
+            $chk->execute([$id]);
+            if ($chk->fetchColumn() > 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Cannot set percent on a task with subtasks']);
+                exit;
             }
-        } else {
+            $sets[]   = 'percent = ?';
+            $params[] = max(0, min(100, (int)$body['percent']));
+        }
+
+        if (empty($sets)) {
             http_response_code(400);
             echo json_encode(['error' => 'Nothing to update']);
             exit;
         }
+
+        $params[] = $id;
+        $stmt = $pdo->prepare('UPDATE tasks SET ' . implode(', ', $sets) . ' WHERE id = ?');
+        $stmt->execute($params);
 
         $row = $pdo->prepare('SELECT * FROM tasks WHERE id = ?');
         $row->execute([$id]);

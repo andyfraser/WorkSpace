@@ -1,8 +1,15 @@
 <?php
 require __DIR__ . '/api/db.php';
 
-$taskStmt = $pdo->query('SELECT * FROM tasks ORDER BY created_at DESC');
-$tasks = $taskStmt->fetchAll();
+$allTasks = $pdo->query('SELECT * FROM tasks ORDER BY created_at DESC')->fetchAll();
+
+$parentTasks = array_values(array_filter($allTasks, fn($t) => $t['parent_id'] === null));
+$childrenMap = [];
+foreach ($allTasks as $t) {
+    if ($t['parent_id'] !== null) {
+        $childrenMap[(int)$t['parent_id']][] = $t;
+    }
+}
 
 function priorityBadgeClass(string $p): string {
     return match($p) {
@@ -10,6 +17,70 @@ function priorityBadgeClass(string $p): string {
         'High' => 'badge-priority-High',
         default => 'badge-priority-Medium',
     };
+}
+
+function calcParentPercent(array $children): int {
+    if (empty($children)) return 0;
+    return (int)round(array_sum(array_column($children, 'percent')) / count($children));
+}
+
+function renderTaskCard(array $task, array $subtasks = [], bool $isSubtask = false): string {
+    $pct        = empty($subtasks) ? (int)($task['percent'] ?? 0) : calcParentPercent($subtasks);
+    $doneClass  = $task['status'] == 1 ? ' completed' : '';
+    $checked    = $task['status'] == 1 ? ' checked' : '';
+    $subClass   = $isSubtask ? ' subtask-card' : '';
+
+    $h  = '<div class="card task-card shadow-sm' . $doneClass . $subClass . '"';
+    $h .= ' data-id="' . (int)$task['id'] . '" data-percent="' . $pct . '">';
+    $h .= '<div class="card-body">';
+
+    // Header: priority badge + action buttons
+    $h .= '<div class="d-flex justify-content-between align-items-start mb-2">';
+    $h .= '<span class="badge ' . priorityBadgeClass($task['priority'] ?? 'Medium') . '">'
+        . htmlspecialchars($task['priority'] ?? 'Medium') . '</span>';
+    $h .= '<div class="d-flex gap-1">';
+    $h .= '<button class="btn btn-sm btn-outline-secondary btn-edit-task" title="Edit">&#x270E;</button>';
+    $h .= '<button class="btn btn-sm btn-outline-danger btn-delete-task" title="Delete">&#x2715;</button>';
+    $h .= '</div></div>';
+
+    // Title
+    $h .= '<h6 class="card-title">' . htmlspecialchars($task['title']) . '</h6>';
+
+    // Progress bar
+    $h .= '<div class="task-progress-wrap d-flex align-items-center gap-2 mt-2">';
+    $h .= '<div class="progress flex-grow-1" style="height:6px">';
+    $h .= '<div class="progress-bar task-progress-bar" role="progressbar"';
+    $h .= ' style="width:' . $pct . '%" aria-valuenow="' . $pct . '"';
+    $h .= ' aria-valuemin="0" aria-valuemax="100"></div></div>';
+    $h .= '<small class="text-muted task-percent-label">' . $pct . '%</small>';
+    $h .= '</div>';
+
+    // Leaf-only: editable percent slider + complete checkbox
+    if (empty($subtasks)) {
+        $h .= '<input type="range" class="form-range task-percent-range mt-1"';
+        $h .= ' value="' . $pct . '" min="0" max="100">';
+        $h .= '<div class="form-check mt-1">';
+        $h .= '<input class="form-check-input task-status-toggle" type="checkbox"';
+        $h .= ' title="Mark complete"' . $checked . '>';
+        $h .= '<label class="form-check-label text-muted small">Complete</label>';
+        $h .= '</div>';
+    }
+
+    // Subtask container
+    $h .= '<div class="subtask-list mt-2">';
+    foreach ($subtasks as $sub) {
+        $h .= renderTaskCard($sub, [], true);
+    }
+    $h .= '</div>';
+
+    // Add-subtask button for top-level tasks only
+    if (!$isSubtask) {
+        $h .= '<button class="btn btn-sm btn-link p-0 mt-1 text-decoration-none small btn-add-subtask">';
+        $h .= '+ Add Subtask</button>';
+    }
+
+    $h .= '</div></div>';
+    return $h;
 }
 ?>
 <!DOCTYPE html>
@@ -59,30 +130,11 @@ function priorityBadgeClass(string $p): string {
             </div>
 
             <div id="task-cards">
-                <?php foreach ($tasks as $task): ?>
-                <?php $completedClass = $task['status'] == 1 ? ' completed' : ''; ?>
-                <div class="card task-card shadow-sm<?= $completedClass ?>" data-id="<?= $task['id'] ?>">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge <?= priorityBadgeClass($task['priority'] ?? 'Medium') ?>">
-                                <?= htmlspecialchars($task['priority'] ?? 'Medium') ?>
-                            </span>
-                            <div class="d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-secondary btn-edit-task" title="Edit">&#x270E;</button>
-                                <button class="btn btn-sm btn-outline-danger btn-delete-task" title="Delete">&#x2715;</button>
-                            </div>
-                        </div>
-                        <h6 class="card-title"><?= htmlspecialchars($task['title']) ?></h6>
-                        <div class="form-check mt-2">
-                            <input class="form-check-input task-status-toggle" type="checkbox" title="Mark complete"
-                                <?= $task['status'] == 1 ? 'checked' : '' ?>>
-                            <label class="form-check-label text-muted small">Complete</label>
-                        </div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
+                <?php foreach ($parentTasks as $task):
+                    echo renderTaskCard($task, $childrenMap[(int)$task['id']] ?? []);
+                endforeach; ?>
             </div>
-            <p id="task-empty" class="empty-state mt-3 <?= count($tasks) > 0 ? 'd-none' : '' ?>">
+            <p id="task-empty" class="empty-state mt-3 <?= count($parentTasks) > 0 ? 'd-none' : '' ?>">
                 No tasks yet. Add one above.
             </p>
         </div>
@@ -212,6 +264,16 @@ function priorityBadgeClass(string $p): string {
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Completion %</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input id="edit-task-percent" type="range" class="form-range flex-grow-1" min="0" max="100" value="0">
+                            <span id="edit-task-percent-display" style="min-width:3em;text-align:right">0%</span>
+                        </div>
+                        <small id="edit-percent-readonly-msg" class="text-muted" style="display:none">
+                            Auto-calculated from subtasks
+                        </small>
                     </div>
                 </div>
                 <div class="modal-footer">
