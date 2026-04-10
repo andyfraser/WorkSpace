@@ -1,0 +1,46 @@
+/* ── Layout ── */
+body {
+    background-color: #f0f2f5;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+/* ── Task Cards ── */
+#task-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.task-card {
+    width: 280px;
+    flex-shrink: 0;
+}
+
+.task-card.completed .card-title {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+/* Priority badge colors */
+.badge-priority-Low    { background-color: #0dcaf0; color: #000; }
+.badge-priority-Medium { background-color: #ffc107; color: #000; }
+.badge-priority-High   { background-color: #dc3545; color: #fff; }
+
+/* ── Empty state ── */
+.empty-state {
+    color: #adb5bd;
+    font-style: italic;
+}
+
+/* ── Toast container ── */
+#toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1100;
+}

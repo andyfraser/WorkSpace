@@ -1,0 +1,22 @@
+{
+    "name": "workspace/dashboard",
+    "description": "WorkSpace Full-Stack Demo Dashboard",
+    "version": "1.0.0",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "twbs/bootstrap": "^5.3",
+        "components/jquery": "^3.7"
+    },
+    "scripts": {
+        "post-install-cmd": "@sync-assets",
+        "post-update-cmd": "@sync-assets",
+        "sync-assets": [
+            "php -r \"@mkdir('assets/vendor', 0777, true);\"",
+            "php -r \"copy('vendor/twbs/bootstrap/dist/css/bootstrap.min.css', 'assets/vendor/bootstrap.min.css');\"",
+            "php -r \"copy('vendor/twbs/bootstrap/dist/js/bootstrap.bundle.min.js', 'assets/vendor/bootstrap.bundle.min.js');\"",
+            "php -r \"copy('vendor/components/jquery/jquery.min.js', 'assets/vendor/jquery.min.js');\""
+        ],
+        "serve": "php -S localhost:8000 index.php"
+    }
+}

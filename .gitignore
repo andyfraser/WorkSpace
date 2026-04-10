@@ -1,0 +1,4 @@
+vendor/
+assets/vendor/
+workspace.db
+.DS_Store
